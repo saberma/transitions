@@ -27,7 +27,7 @@ module Transitions
     def initialize(name, options = {})
       @name = name
       if machine = options.delete(:machine)
-        machine.klass.define_state_query_method(name)
+        machine.klass.define_state_query_method(machine, name)
       end
       update(options)
     end

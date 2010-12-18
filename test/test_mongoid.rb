@@ -4,8 +4,9 @@ class MongoTrafficLight
   include Mongoid::Document
   include Mongoid::Transitions
   field :state
+  field :pay_state
 
-  state_machine do
+  state_machine :state do
     state :off
 
     state :red
@@ -28,9 +29,18 @@ class MongoTrafficLight
       transitions :to => :red, :from => [:off]
     end
   end
+
+  state_machine :pay_state do
+    state :unpay
+    state :payed
+
+    event :pay do
+      transitions :to => :payed, :from => [:unpay]
+    end
+  end
 end
 
-class MongoProtectedTrafficLight < TrafficLight
+class MongoProtectedTrafficLight < MongoTrafficLight
   attr_protected :state
 end
 
@@ -46,7 +56,9 @@ class TestMongoid < Test::Unit::TestCase
 
   test "states initial state" do
     assert @light.off?
+    assert @light.unpay?
     assert_equal :off, @light.current_state
+    assert_equal :unpay, @light.current_state(:pay_state)
   end
 
   test "transition to a valid state" do
@@ -87,7 +99,7 @@ class TestMongoid < Test::Unit::TestCase
   end
 
   test "transition with wrong state will not validate" do
-    for s in @light.class.state_machine.states
+    for s in @light.class.state_machines[:state].states
       @light.state = s.name
       assert @light.valid?
     end

@@ -34,21 +34,25 @@ module Mongoid
     protected
 
     def write_state(state_machine, state)
-      self.state = state.to_s
+      self.send("#{state_machine.name}=", state.to_s)
       save!
     end
 
     def read_state(state_machine)
-      self.state.to_sym
+      self.send(state_machine.name).to_sym
     end
 
     def set_initial_state
-      self.state ||= self.class.state_machine.initial_state.to_s
+      self.class.state_machines.each_pair do |name, machine|
+        self.send("#{name}=", machine.initial_state.to_s) unless self.send(name)
+      end
     end
 
     def state_inclusion
-      unless self.class.state_machine.states.map{|s| s.name.to_s }.include?(self.state.to_s)
-        self.errors.add(:state, :inclusion, :value => self.state)
+      self.class.state_machines.each_pair do |name, machine|
+        unless machine.states.map{|s| s.name.to_s }.include?(self.send(name).to_s)
+          self.errors.add(name, :inclusion, :value => self.send(name))
+        end
       end
     end
   end
